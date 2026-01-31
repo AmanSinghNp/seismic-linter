@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seismic-linter"
+version = "0.1.0"
+description = "A static analysis tool for preventing temporal causality leaks in seismology ML."
+readme = "README.md"
+authors = [{name = "Lakhure", email = "your.email@example.com"}]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "ruff>=0.1.15",
+    "libcst>=1.1.0", # Great for AST manipulation
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "black>=24.1.1",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]
+
+[project.scripts]
+seismic-linter = "seismic_linter.cli:main"
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "T00"] # Add your custom rule codes here

@@ -1,0 +1,22 @@
+name: Greetings
+
+on: [pull_request_target, issues]
+
+jobs:
+  greeting:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+    - uses: actions/first-interaction@v1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        issue-message: |
+          Thanks for opening your first issue! 🎉 
+          
+          We appreciate your contribution to seismic-linter. A maintainer will review this soon.
+        pr-message: |
+          Thanks for your first pull request! 🚀
+          
+          We appreciate your contribution to improving temporal causality checking in seismology. A maintainer will review this soon.
