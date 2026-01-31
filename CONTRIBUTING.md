@@ -28,7 +28,7 @@ Thank you for your interest in contributing! 🎉
 ### Development Setup
 
 ```bash
-git clone https://github.com/yourusername/seismic-linter.git
+git clone https://github.com/AmanSinghNp/seismic-linter.git
 cd seismic-linter
 python -m venv venv
 source venv/bin/activate

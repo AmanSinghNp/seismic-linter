@@ -2,7 +2,7 @@
 
 ## Project Leadership
 
-**Maintainer**: [Your Name] (@yourusername)
+**Maintainer**: Aman Singh (@AmanSinghNp)
 - Final decision authority on project direction
 - Release management
 - Code review and merge authority
