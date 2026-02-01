@@ -1,8 +1,14 @@
 try:
-    from importlib.metadata import version
-
-    __version__ = version("seismic-linter")
+    from importlib.metadata import version, PackageNotFoundError
 except ImportError:
+    from importlib_metadata import version, PackageNotFoundError  # type: ignore
+
+def _get_version():
+    try:
+        return version("seismic-linter")
+    except (ImportError, PackageNotFoundError):
+        pass
+
     # Fallback: try reading pyproject.toml directly if available
     try:
         from pathlib import Path
@@ -10,7 +16,10 @@ except ImportError:
         try:
             import tomllib
         except ImportError:
-            import tomli as tomllib
+            try:
+                import tomli as tomllib
+            except ImportError:
+                return "0.2.0"  # Fallback if no toml parser
 
         # Look for pyproject.toml relative to this file
         # src/seismic_linter/version.py -> src/seismic_linter -> src -> root
@@ -19,10 +28,11 @@ except ImportError:
         if pyproj.exists():
             with open(pyproj, "rb") as f:
                 data = tomllib.load(f)
-            __version__ = data.get("project", {}).get("version", "0.2.0")
-        else:
-            # KEEP IN SYNC with pyproject.toml version
-            __version__ = "0.2.0"
+            return data.get("project", {}).get("version", "0.2.0")
     except Exception:
-        # KEEP IN SYNC with pyproject.toml version
-        __version__ = "0.2.0"
+        pass
+        
+    return "0.2.0"
+
+__version__ = _get_version()
+
