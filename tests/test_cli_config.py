@@ -90,7 +90,7 @@ fail_on = [" T003 "]
 
 
 def test_find_pyproject_toml_none_uses_cwd(temp_project, monkeypatch):
-    """find_pyproject_toml(None) uses Path.cwd() and finds pyproject.toml from there."""
+    """find_pyproject_toml(None) uses Path.cwd(); finds pyproject from there."""
     import pathlib
 
     monkeypatch.setattr(pathlib.Path, "cwd", classmethod(lambda cls: temp_project))

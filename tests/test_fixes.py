@@ -101,4 +101,6 @@ def test_t002_refinement():
     # Case 4: Explicitly Unsafe Substring (test_data)
     code_leak = "model.fit(test_data, y)"
     violations = analyze_code(code_leak)
-    assert any(v.rule_id == "T002" for v in violations), "test_data should trigger T002"
+    assert any(v.rule_id == "T002" for v in violations), (
+        "test_data should trigger T002"
+    )

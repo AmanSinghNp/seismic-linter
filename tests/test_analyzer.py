@@ -13,7 +13,7 @@ def test_safe_parent_recursion_limit():
     analyzer = TemporalAnalyzer("test")
     tree = ast.parse(code)
     analyzer.visit(tree)
-    # Should not crash, and should probably flag T001 because it can't find a safe parent within limit
+    # Should not crash, and should probably flag T001 (no safe parent within limit)
     assert len(analyzer.violations) == 1
     assert analyzer.violations[0].rule_id == "T001"
 
