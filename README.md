@@ -1,26 +1,22 @@
 # seismic-linter
 
 [![PyPI](https://img.shields.io/pypi/v/seismic-linter)](https://pypi.org/project/seismic-linter/)
-[![CI](https://github.com/AmanSinghNp/seismic-linter/actions/workflows/ci.yml/badge.svg)](https://github.com/AmanSinghNp/seismic-linter/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/AmanSinghNp/seismic-linter/actions/workflows/ci.yml/badge.svg)](https://github.com/AmanSinghNp/seismic-linter/actions/workflows/ci.yml)
 
-**Stop publishing 99% accurate models that fail in production.**
+**Static analysis for temporal causality in machine learning.**
 
-seismic-linter automatically detects temporal causality violations in earthquake forecasting and seismology machine learning pipelines. It catches the silent bugs that make your model "cheat" by using future data during training—leading to papers with impressive results that completely fail during real-time deployment.
+`seismic-linter` prevents "future leakage"—the most common pathology in time-series forecasting and earthquake prediction models. It detects code patterns where future data inadvertently leaks into training, ensuring your model's performance in production matches its offline validation.
 
-## The Problem
+## Why use this?
 
-Earthquake forecasting suffers from a unique ML pathology: **temporal data leakage**. When you normalize magnitudes using global statistics, split data with `shuffle=True`, or fit transformers before temporal splitting, your model implicitly "knows" about future earthquakes. This creates artificially high accuracy that evaporates in production.
+In time-series domains like seismology or finance, standard ML practices often fail:
+- **Global Normalization**: Computing `mean()` over the entire dataset (including the test set) leaks distribution info.
+- **Random Splits**: Using `train_test_split(shuffle=True)` destroys temporal order.
+- **Premature Fitting**: Calling `.fit()` on data before time-splitting allows the model to glimpse the future.
 
-## The Solution
-
-seismic-linter provides:
-- 🔍 **Static analysis** - Scan your Python code for leakage patterns before running
-- ⚡ **Runtime validation** - Decorators (`@verify_monotonicity`) and integrity checks
-- 🧪 **Pytest Integration** - Use `validate_split_integrity(train_df, test_df)` after splitting. See [docs/api.md](docs/api.md) for full API.
-- 📋 **Pre-commit hooks** - Block leaky code from entering your repository
-
-The GitHub Action runs in a Linux container; Windows runners are not supported.
+This tool catches these issues **statically** (before you run the code) and **dynamically** (with runtime guards).
 
 ## Installation
 
@@ -28,31 +24,90 @@ The GitHub Action runs in a Linux container; Windows runners are not supported.
 pip install seismic-linter
 ```
 
-## Detected Rules
+## Quick Start
 
-| Rule ID | Description | Severity |
-|---------|-------------|----------|
-| **T001** | Global statistics (mean/std) computed without temporal context | ⚠️ Warning |
-| **T002** | Model `.fit()` called on potentially leaky data (e.g., raw `df`) | ℹ️ Info |
-| **T003** | `train_test_split` with `shuffle=True` (random split) | ❌ Error |
+Run the linter on your project directory:
 
-## Configuration
-Configuration is loaded from the `pyproject.toml` of the first path specified in the CLI arguments (or current directory if none).
-
-Inline suppressions are supported using `# seismic-linter: ignore rule_id` (applies to current line only):
-```python
-df['norm'] = (df['mag'] - df['mag'].mean()) / df['mag'].std()  # seismic-linter: ignore T001
+```bash
+seismic-linter ./src
 ```
 
-> **Note**: When using `github` output format, paths are relative to the current working directory where possible.
+**Example Output:**
+```text
+src/models/train.py:45:5 [T001] Global mean() computed without temporal context.
+src/data/loader.py:12:1  [T003] train_test_split call uses shuffle=True (unsafe).
+```
 
-## Quick Example
+## Features
+
+- **Static Analysis**: Scans Python files (`.py`) and Jupyter Notebooks (`.ipynb`) for leaky AST patterns.
+- **Runtime Guards**: API to verify data integrity during execution.
+- **Zero Config**: Works out of the box, but fully configurable via `pyproject.toml`.
+- **Fast**: Multiprocess analysis with content-based caching.
+
+## Rules
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| **T001** | ⚠️ Warning | **Global Statistics**: Computing aggregate statistics (mean, std, min, max) on what appears to be a global DataFrame without grouping or rolling windows. |
+| **T002** | ℹ️ Info | **Unsafe Usage**: Calling `.fit()` on variables named generic terms like `df` or `data` instead of explicit training splits (`train_df`, `X_train`). |
+| **T003** | ❌ Error | **Random Splitting**: Using `train_test_split` with `shuffle=True` (or without explicitly setting `shuffle=False`), which violates temporal causality. |
+
+## Configuration
+
+You can configure the linter via `pyproject.toml` in your project root:
+
+```toml
+[tool.seismic-linter]
+include = ["src", "notebooks"]
+exclude = ["tests", "legacy"]
+fail-on = ["T003"]            # Only exit with error code for T003
+ignore = ["T002"]             # Completely silence T002 rules
+```
+
+### Inline Suppression
+
+Ignore specific violations on a single line using a comment:
 
 ```python
-# ❌ This will trigger a warning
-df['normalized'] = (df['magnitude'] - df['magnitude'].mean()) / df['magnitude'].std()
+# Calculate global mean for baseline (safe usage)
+baseline = df['mag'].mean()  # seismic-linter: ignore T001
+```
 
-# ✅ This passes validation  
-df['normalized'] = df.groupby('station')['magnitude'].transform(
-    lambda x: (x - x.rolling(window=100).mean())
-)
+## Runtime Verification API
+
+For critical pipelines, add runtime checks to ensure data integrity.
+
+```python
+from seismic_linter import verify_monotonicity, validate_split_integrity
+
+# 1. Decorator to ensure DataFrame is sorted by time
+@verify_monotonicity(time_column="time")
+def load_catalogue(path):
+    return pd.read_csv(path)
+
+# 2. explicit check after splitting
+train, test = split_data(df)
+validate_split_integrity(train, test, time_column="time") 
+# Raises TemporalCausalityError if any test timestamp predates a training timestamp
+```
+
+## Pre-commit Hook
+
+Add to your `.pre-commit-config.yaml` to catch leaks before they are committed:
+
+```yaml
+repos:
+  - repo: https://github.com/AmanSinghNp/seismic-linter
+    rev: v0.2.0
+    hooks:
+      - id: seismic-linter
+```
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on setting up the developments environment and running tests.
+
+## License
+
+MIT
