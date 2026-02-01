@@ -1,6 +1,5 @@
 
-import pytest
-from pathlib import Path
+
 from seismic_linter.analyzer import analyze_file
 
 def test_analyze_file_notebook(tmp_path):

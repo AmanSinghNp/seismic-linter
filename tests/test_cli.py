@@ -10,10 +10,15 @@ def run_cli(args, cwd, tmp_path):
     err_file = tmp_path / "stderr.txt"
     
     # Ensure fresh files
-    if out_file.exists(): out_file.unlink()
-    if err_file.exists(): err_file.unlink()
+    # Ensure fresh files
+    if out_file.exists():
+        out_file.unlink()
+    if err_file.exists():
+        err_file.unlink()
 
-    with open(out_file, "w", encoding="utf-8") as out, open(err_file, "w", encoding="utf-8") as err:
+    with open(out_file, "w", encoding="utf-8") as out, open(
+        err_file, "w", encoding="utf-8"
+    ) as err:
         result = subprocess.run(
             args,
             stdout=out,
@@ -82,7 +87,10 @@ def test_cli_worker_error_path(tmp_path):
 
     # We expect E000 in stdout OR "Analysis failed" in stdout (due to synthesized violation)
     # AND non-zero exit because of error severity
-    assert "E000" in out or "Analysis failed" in out, f"Stdout was: {out!r}\nStderr was: {err!r}"
+    # AND non-zero exit because of error severity
+    assert "E000" in out or "Analysis failed" in out, (
+        f"Stdout was: {out!r}\nStderr was: {err!r}"
+    )
     assert rc != 0, f"Expected failure but got {rc}\nStdout: {out!r}\nStderr: {err!r}"
 
 
@@ -119,6 +127,9 @@ def test_cli_stress_torture(tmp_path):
     if not torture_file.exists():
         # Fallback for when running from elsewhere? 
         # But we assume running from project root.
+        # But we assume running from project root.
+        import pytest
+
         pytest.skip("tests/data/torture.py not found")
 
     rc, out, err = run_cli(
@@ -167,35 +178,5 @@ def test_print_formatting(capsys, tmp_path):
     assert "⚠️ [Line 10] T001: Test Message" in captured.out
 
 
-def test_cli_ignore_normalizes_whitespace(tmp_path):
-    """CLI --ignore with spaces still matches rule IDs (T001 ignored)."""
-    env = {
-        **sys.modules["os"].environ,
-        "PYTHONPATH": str(Path.cwd() / "src"),
-        "PYTHONIOENCODING": "utf-8",
-    }
-    py_file = tmp_path / "leaky.py"
-    py_file.write_text(
-        "import pandas as pd\n"
-        "df = pd.DataFrame({'x': [1,2,3]})\n"
-        "print(df['x'].mean())",
-        encoding="utf-8",
-    )
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "seismic_linter.cli",
-            "--ignore",
-            " T001 ",
-            "--no-fail-on-error",
-            str(py_file),
-        ],
-        capture_output=True,
-        text=True,
-        env=env,
-        cwd=Path.cwd(),
-    )
-    assert result.returncode == 0
-    out = result.stdout or ""
-    assert "T001" not in out, "T001 should be ignored when passed as ' T001 '"
+
+

@@ -5,8 +5,8 @@ from seismic_linter.analyzer import TemporalAnalyzer, analyze_code
 def test_safe_parent_recursion_limit():
     """Test that deeply nested calls do not cause infinite recursion."""
     # extremely nested calls: df.a.b.c.d.e....mean()
-    # We just need enough to exceed max_iter=100 in logic, but standard python recurion limit 
-    # handles AST. The linter has an explicit loop limit.
+    # We just need enough to exceed max_iter=100 in logic, but standard python
+    # recursion limit handles AST. The linter has an explicit loop limit.
     
     # Heuristic chain
     code = "df" + ".parent" * 150 + ".mean()"
