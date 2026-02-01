@@ -1,7 +1,7 @@
 import nbformat
 from dataclasses import replace
 from pathlib import Path
-from pathlib import Path
+
 from typing import Dict, List, Optional, Tuple
 from .rules import Violation
 

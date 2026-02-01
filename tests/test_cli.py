@@ -87,7 +87,6 @@ def test_cli_worker_error_path(tmp_path):
 
     # We expect E000 in stdout OR "Analysis failed" in stdout (due to synthesized violation)
     # AND non-zero exit because of error severity
-    # AND non-zero exit because of error severity
     assert "E000" in out or "Analysis failed" in out, (
         f"Stdout was: {out!r}\nStderr was: {err!r}"
     )
