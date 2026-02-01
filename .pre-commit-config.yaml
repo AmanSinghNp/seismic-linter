@@ -14,7 +14,7 @@ repos:
       - id: black
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.15
+    rev: v0.8.0
     hooks:
       - id: ruff
         args: [--fix]
@@ -30,5 +30,6 @@ repos:
       - id: seismic-linter
         name: seismic-linter
         entry: seismic-linter
+        types_or: [python, jupyter]
+        # Using 'system' requires seismic-linter to be available on PATH (pip install .)
         language: system
-        types: [python]

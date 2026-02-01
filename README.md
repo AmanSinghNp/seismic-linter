@@ -16,9 +16,29 @@ Earthquake forecasting suffers from a unique ML pathology: **temporal data leaka
 
 seismic-linter provides:
 - 🔍 **Static analysis** - Scan your Python code for leakage patterns before running
-- ⚡ **Runtime validation** - Decorators that enforce temporal causality during execution  
-- 🧪 **Pytest integration** - Automated tests to prove your train/test split is valid
+- ⚡ **Runtime validation** - Decorators (`@verify_monotonicity`) and integrity checks
+- 🧪 **Pytest Integration** - Use `validate_split_integrity(train_df, test_df)` after splitting. See [docs/api.md](docs/api.md) for full API.
 - 📋 **Pre-commit hooks** - Block leaky code from entering your repository
+
+The GitHub Action runs in a Linux container; Windows runners are not supported.
+
+## Detected Rules
+
+| Rule ID | Description | Severity |
+|---------|-------------|----------|
+| **T001** | Global statistics (mean/std) computed without temporal context | ⚠️ Warning |
+| **T002** | Model `.fit()` called on potentially leaky data (e.g., raw `df`) | ℹ️ Info |
+| **T003** | `train_test_split` with `shuffle=True` (random split) | ❌ Error |
+
+## Configuration
+Configuration is loaded from the `pyproject.toml` of the first path specified in the CLI arguments (or current directory if none).
+
+Inline suppressions are supported using `# seismic-linter: ignore rule_id` (applies to current line only):
+```python
+df['norm'] = (df['mag'] - df['mag'].mean()) / df['mag'].std()  # seismic-linter: ignore T001
+```
+
+> **Note**: When using `github` output format, paths are relative to the current working directory where possible.
 
 ## Quick Example
 

@@ -24,6 +24,7 @@ wheels/
 venv/
 ENV/
 env/
+.venv/
 
 # Testing
 .pytest_cache/
@@ -47,3 +48,6 @@ Thumbs.db
 *.log
 .mypy_cache/
 .ruff_cache/
+.seismic_cache/
+benchmark_temp/
+test_env/

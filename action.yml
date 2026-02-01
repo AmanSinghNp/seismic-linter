@@ -1,0 +1,43 @@
+name: 'Seismic Linter'
+description: 'Detect temporal causality leaks in seismology ML code'
+author: 'Aman Singh'
+branding:
+  icon: 'activity'
+  color: 'red'
+
+inputs:
+  path:
+    description: 'Path directly or file to scan'
+    required: false
+    default: '.'
+  output_format:
+    description: 'Output format (text, json, github). Passed to the CLI as --output.'
+    required: false
+    default: 'github'
+  fail_on_error:
+    description: 'Fail the action if errors are found'
+    required: false
+    default: 'true'
+  ignore:
+    description: 'Space-separated list of rules to ignore (e.g. "T001 T002").'
+    required: false
+    default: ''
+  fail_on:
+    description: 'Space-separated list of rules to treat as fatal (e.g. "T003").'
+    required: false
+    default: ''
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    INPUT_FAIL_ON_ERROR: ${{ inputs.fail_on_error }}
+    INPUT_IGNORE: ${{ inputs.ignore }}
+    INPUT_FAIL_ON: ${{ inputs.fail_on }}
+  args:
+    - ${{ inputs.path }}
+    - '--output'
+    - ${{ inputs.output_format }}
+
+# We can also add --fail-on flags if needed via extra args, 
+# but for now this covers basic usage.

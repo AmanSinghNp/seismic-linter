@@ -38,4 +38,4 @@ jobs:
 
       - name: Test
         run: |
-          pytest -q --cov=seismic_linter --cov-report=xml
+          pytest -q --cov=seismic_linter --cov-report=xml --cov-fail-under=90

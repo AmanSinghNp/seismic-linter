@@ -21,7 +21,7 @@ Thank you for your interest in contributing! 🎉
 3. Make your changes
 4. Add tests for new functionality
 5. Run the test suite: `pytest`
-6. Run linters: `ruff check . && black . && mypy seismic_linter/`
+6. Run linters: `ruff check . && black . && mypy src/seismic_linter`
 7. Commit with descriptive message
 8. Push and create a Pull Request
 
@@ -31,10 +31,15 @@ Thank you for your interest in contributing! 🎉
 git clone https://github.com/AmanSinghNp/seismic-linter.git
 cd seismic-linter
 python -m venv venv
+# On Windows: .\venv\Scripts\activate
+# On macOS/Linux: source venv/bin/activate
 source venv/bin/activate
 pip install -e .[dev]
 pre-commit install
 ```
+> **Note**: The pre-commit hook uses `language: system`, so `seismic-linter` must be available on your PATH (e.g. installed in your active virtual environment).
+
+Cache is keyed by absolute path and is not portable across machines or directories.
 
 ### Coding Standards
 - Follow PEP 8 (enforced by Black and Ruff)
@@ -58,5 +63,8 @@ pre-commit install
 ### Code Review
 All submissions require review. We aim to provide feedback within 48 hours.
 
+### Configuration
+In `[tool.seismic-linter]`, `fail_on` replaces the default list of rules that cause a non-zero exit (it does not merge with defaults).
+
 ## Questions?
-Open a discussion on GitHub or reach out via [contact method].
+Open a discussion on GitHub or submit an issue.
