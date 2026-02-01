@@ -129,7 +129,10 @@ def main():
         type=Path,
         nargs="*",
         default=None,
-        help="File(s) or directory to analyze (default: current directory). Note: Config is loaded from the first path.",
+        help=(
+            "File(s) or directory to analyze (default: current directory). "
+            "Note: Config is loaded from the first path."
+        ),
     )
     parser.add_argument(
         "--ignore", nargs="+", help="List of rule IDs to ignore (overrides config)"
@@ -189,7 +192,10 @@ def main():
     all_files: Set[Path] = set()
     for p in paths_to_scan:
         if p.is_file():
-            if p.suffix in SUPPORTED_EXTENSIONS and not is_excluded(p, excludes, p.parent):
+            if (
+                p.suffix in SUPPORTED_EXTENSIONS 
+                and not is_excluded(p, excludes, p.parent)
+            ):
                 all_files.add(p)
         else:
             all_files.update(collect_files(p, config))
@@ -202,8 +208,6 @@ def main():
 
     # Initialize Cache
     cache = ContentCache(project_root)
-
-    files_to_worker = []
 
     # Phase 1: Check Cache Local (simple files + notebooks)
     # We also prepare args for the worker to avoid re-reading/re-parsing
@@ -233,7 +237,8 @@ def main():
         except Exception as e:
             print(f"Cache skip (read/parse error): {f}: {e}", file=sys.stderr)
             # If read failed, we might still let the worker try and fail gracefully
-            # But usually we just pass what we have. If source is None, worker will try read.
+            # But usually we just pass what we have. 
+            # If source is None, worker will try read.
             pass
 
         # If not cached, add to worker args.

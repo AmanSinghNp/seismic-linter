@@ -1,4 +1,4 @@
-from pathlib import Path
+
 from seismic_linter.analyzer import analyze_code
 
 def test_inline_suppression_single():

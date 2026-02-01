@@ -1,7 +1,9 @@
 import nbformat
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+from .rules import Violation
 
 
 class NotebookMapper:
@@ -18,11 +20,10 @@ class NotebookMapper:
         return self.virtual_lines.get(virtual_line, (None, virtual_line))
 
 
-from .rules import Violation
-
-
 # Violation typed as Any to avoid circular import with rules.py.
-def map_violations(violations: List[Violation], mapper: NotebookMapper) -> List[Violation]:
+def map_violations(
+    violations: List[Violation], mapper: NotebookMapper
+) -> List[Violation]:
     """
     Maps violations from synthetic source back to notebook cells.
     Returns a new list of new Violation instances (does not mutate input).
