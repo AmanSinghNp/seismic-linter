@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **T001**: Statistics over a slice with an explicit stop (`x[:split]`, `cft[i, on:off]`) and error metrics over a difference of two arrays (`(pred - target) ** 2`) are no longer reported. Slices without a stop, such as `x[:]` or the tail `x[split:]`, differences over time, such as returns (`x - x.shift(1)`), and plain squared series still are.
 - **Exclude Patterns**: Default excludes (e.g. `build`, `venv`) match only path segments below the scanned directory, so a project stored under such a directory is no longer skipped silently.
 - **Notebooks**: IPython line magics and shell escapes, including backslash-continued ones, no longer make the whole notebook fail with E001. A `%name` continuation line inside brackets is Python, not a magic. Cells with a non-Python cell magic (`%%bash`) are skipped, while `%%time`, `%%timeit`, `%%capture` and `%%prun` keep their Python body and `%time x = expr` keeps its statement.
-- **T002**: Unsafe names are matched by word, so names such as `small` or `call_features` no longer trigger.
+- **T002**: Unsafe names are matched by word, so names such as `small` or `call_features` no longer trigger. Unsafe markers attached to a data name, such as `Xtest`, `ytest` or `dftest`, still trigger.
 - **Suppressions**: Free-text after a second `#` in a suppression comment is not read as rule IDs.
 - **Pre-commit**: Added `.pre-commit-hooks.yaml` so the documented `seismic-linter` hook resolves.
 - **Coverage gate**: The 90% gate compares unrounded totals and the test suite no longer depends on `.seismic_cache` state.

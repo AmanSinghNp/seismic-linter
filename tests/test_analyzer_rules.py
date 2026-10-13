@@ -29,6 +29,16 @@ def test_t002_safe_names_still_win():
     assert "T002" not in _rule_ids("model.fit(all_train)")
 
 
+def test_t002_flags_unsafe_markers_attached_to_data_names():
+    """train_test_split users often write Xtest, ytest and dftest without separators."""
+    assert "T002" in _rule_ids("model.fit(Xtest)")
+    assert "T002" in _rule_ids("model.fit(ytest)")
+    assert "T002" in _rule_ids("model.fit(dftest)")
+    assert "T002" in _rule_ids("model.fit(Xval)")
+    assert "T002" not in _rule_ids("model.fit(Xtrain)")
+    assert "T002" not in _rule_ids("model.fit(ytrain)")
+
+
 # --- T001: neutral operations keep the grouping context ---
 def test_t001_neutral_ops_after_groupby_are_safe():
     assert _rule_ids("df.groupby('a').dropna().mean()") == []

@@ -18,15 +18,22 @@ UNSAFE_SUBSTRING_NAMES = ["test", "val", "full", "all", "whole", "entire"]
 SAFE_SUBSTRING_NAMES = ["train", "trn", "training", "fit", "sample", "resampled"]
 
 
+# T002: data names that can carry an unsafe marker with no separator, as in Xtest
+DATA_PREFIXES = ("", "x", "y", "df", "data", "dataset", "dataframe")
+
+
 def _has_unsafe_word(name_lower: str) -> bool:
     """
-    True if a word in a snake_case name starts with an unsafe marker.
-    Matching words rather than raw substrings keeps names such as "small"
-    or "call" from matching "all".
+    True if a word in a snake_case name starts with an unsafe marker, optionally
+    after a data name, as in Xtest. Matching words rather than raw substrings keeps
+    names such as "small" or "call" from matching "all".
     """
     words = re.split(r"[^a-z0-9]+", name_lower)
     return any(
-        word.startswith(marker) for word in words for marker in UNSAFE_SUBSTRING_NAMES
+        word.startswith(prefix + marker)
+        for word in words
+        for prefix in DATA_PREFIXES
+        for marker in UNSAFE_SUBSTRING_NAMES
     )
 
 
