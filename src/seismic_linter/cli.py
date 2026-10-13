@@ -32,19 +32,25 @@ def is_excluded(
     name = path.name
 
     # Check relative path if base_path is provided
-    rel_path_str = None
+    rel_path = None
     if base_path:
         try:
-            rel_path_str = str(path.relative_to(base_path)).replace("\\", "/")
+            rel_path = path.relative_to(base_path)
         except ValueError:
             pass
+    rel_path_str = str(rel_path).replace("\\", "/") if rel_path is not None else None
 
+    # Match directory names against path segments. When the scanned base is known,
+    # only segments below it count; otherwise a project under e.g. /srv/build/
+    # would be excluded wholesale by the "build" default.
     # Use resolved parts to match against directory names in patterns
     # e.g. path="project/.git/config" parts=("project", ".git", "config")
     # if ".git" is in patterns, we should match.
     # Note: patterns might be globs too.
-
-    path_parts = set(part for part in path.parts)
+    if rel_path is not None:
+        path_parts = set(rel_path.parts)
+    else:
+        path_parts = set(path.parts)
 
     for pattern in exclude_patterns:
         # 1. Exact Name/Basename Match (e.g. pattern=".git" matches name=".git")
