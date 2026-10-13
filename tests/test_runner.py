@@ -23,3 +23,14 @@ def test_process_file_wrapper_exception(tmp_path):
         res = process_file_wrapper((f, None, None))
         path_str, violations, h, error = res
         assert "Boom" in error
+
+
+def test_process_file_wrapper_reports_missing_file_as_crash(tmp_path):
+    from seismic_linter.runner import process_file_wrapper
+
+    missing = tmp_path / "missing.py"
+    _, violations, content_hash, error = process_file_wrapper((missing, None, None))
+
+    assert violations == []
+    assert content_hash is None
+    assert error and error.startswith("CRASH:")

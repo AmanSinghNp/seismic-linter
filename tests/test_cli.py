@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 from unittest.mock import patch
-import pytest
 import json
 from seismic_linter.cli import main
 
@@ -90,11 +89,11 @@ def test_cli_ignore_normalizes_whitespace(tmp_path, monkeypatch, capsys):
 
 def test_cli_stress_torture(tmp_path, monkeypatch, capsys):
     """Ensure the linter doesn't crash on complex valid Python code."""
-    original_cwd = Path.cwd()
-    torture_file = original_cwd / "tests/data/torture.py"
-
-    if not torture_file.exists():
-        pytest.skip("tests/data/torture.py not found")
+    # Copy the fixture so the run does not depend on the working directory or on
+    # a .seismic_cache left behind by earlier runs in the repository root.
+    torture_src = Path(__file__).resolve().parent / "data" / "torture.py"
+    torture_file = tmp_path / "torture.py"
+    torture_file.write_text(torture_src.read_text(encoding="utf-8"), encoding="utf-8")
 
     rc, out, err = run_cli_in_process(
         [str(torture_file)], tmp_path, monkeypatch, capsys
