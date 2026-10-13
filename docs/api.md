@@ -23,7 +23,7 @@ Notebooks are converted to Python before analysis. IPython line magics (`%matplo
 def analyze_file(filepath: Path, cache_root: Optional[Path] = None) -> List[Violation]
 ```
 
-Analyzes a single file (Python script or Jupyter Notebook) for temporal causality violations. Returns a list of `Violation` objects. Results are cached under `cache_root`; if omitted, the cache root is inferred from the project (e.g. directory containing `pyproject.toml`) or the file's parent.
+Analyzes a single file (Python script or Jupyter Notebook) for temporal causality violations. Returns a list of `Violation` objects. Results are cached under `cache_root`; if omitted, the cache root is inferred from the project (e.g. directory containing `pyproject.toml`) or the file's parent. Cached results from another linter version or from different analyzer code are not reused.
 
 > **Note**: The cache is keyed by the absolute path of the file. Moving the repository or running from a different path will invalidate the cache.
 

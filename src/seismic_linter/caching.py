@@ -9,6 +9,25 @@ from .rules import Violation
 
 CACHE_DIR_NAME = ".seismic_cache"
 
+# Modules whose code decides the findings. Their digest is stored with each entry,
+# so an entry from another analyzer or rule set is a miss even when the file is
+# unchanged. The version alone does not change during development.
+ANALYSIS_MODULES = ("analyzer.py", "notebook_handler.py", "rules.py")
+
+
+def _analysis_digest() -> str:
+    digest = hashlib.md5(LINTER_VERSION.encode("utf-8"))
+    package_dir = Path(__file__).resolve().parent
+    for name in ANALYSIS_MODULES:
+        try:
+            digest.update((package_dir / name).read_bytes())
+        except OSError:
+            pass  # Sources not on disk (e.g. zipped installs) use the version only
+    return digest.hexdigest()
+
+
+ANALYSIS_DIGEST = _analysis_digest()
+
 
 class ContentCache:
     def __init__(self, root_path: Path):
@@ -31,8 +50,9 @@ class ContentCache:
     def get(self, filepath: Path, content_hash: str) -> Optional[List[Violation]]:
         """
         Retrieve violations from cache if valid.
-        Cache entries from future linter versions or with changed Violation structure
-        are treated as miss; new optional Violation fields should be read with .get().
+        Cache entries from future linter versions, from another analyzer digest or
+        with changed Violation structure are treated as miss; new optional Violation
+        fields should be read with .get().
         """
         cache_path = self._get_cache_path(filepath)
         if not cache_path.exists():
@@ -46,6 +66,8 @@ class ContentCache:
             if data.get("linter_version") != LINTER_VERSION:
                 return None
             if data.get("content_hash") != content_hash:
+                return None
+            if data.get("analyzer_digest") != ANALYSIS_DIGEST:
                 return None
 
             # Reconstruct Violations
@@ -85,6 +107,7 @@ class ContentCache:
             "file_path": str(filepath),
             "content_hash": content_hash,
             "linter_version": LINTER_VERSION,
+            "analyzer_digest": ANALYSIS_DIGEST,
             "violations": [asdict(v) for v in violations],
         }
 

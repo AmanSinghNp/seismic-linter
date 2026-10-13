@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **T002**: Unsafe names are matched by word, so names such as `small` or `call_features` no longer trigger. Unsafe markers attached to a data name, such as `Xtest`, `ytest` or `dftest`, still trigger.
 - **Suppressions**: Free-text after a second `#` in a suppression comment is not read as rule IDs.
 - **Pre-commit**: Added `.pre-commit-hooks.yaml` so the documented `seismic-linter` hook resolves.
+- **Cache**: Cached results are keyed on the analyzer and rule code as well as the file content, so upgrading the linter no longer reuses findings from the previous rules. Deleting `.seismic_cache` after an upgrade is no longer needed.
 - **Coverage gate**: The 90% gate compares unrounded totals and the test suite no longer depends on `.seismic_cache` state.
 
 ### Documentation
