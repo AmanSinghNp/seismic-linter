@@ -40,11 +40,28 @@ def map_violations(
     return mapped
 
 
+def _comment_line_magic(line: str) -> str:
+    """
+    Comment out IPython line magics (%matplotlib inline) and shell escapes
+    (!pip install ...) so the rest of the cell still parses. Indentation is kept
+    and the line count is unchanged, so line mapping stays valid.
+    """
+    stripped = line.lstrip()
+    if stripped.startswith(("%", "!")):
+        indent = line[: len(line) - len(stripped)]
+        return f"{indent}# {stripped}"
+    return line
+
+
 def parse_notebook(filepath: Path) -> Tuple[str, NotebookMapper]:
     """
     Parses a Jupyter Notebook and returns:
     1. Concatenated Python source code.
     2. A mapper object to translate line numbers back to cells.
+
+    IPython line magics and shell escapes are commented out. Cells that start
+    with a cell magic (%%bash, %%html, ...) are skipped, since their body is not
+    Python.
     """
     with open(filepath, "r", encoding="utf-8") as f:
         nb = nbformat.read(f, as_version=4)
@@ -67,8 +84,12 @@ def parse_notebook(filepath: Path) -> Tuple[str, NotebookMapper]:
             if not cell_source:
                 continue
 
+            # A cell magic switches the whole cell to another language.
+            if cell_source.lstrip().startswith("%%"):
+                continue
+
             # Split into lines to track line numbers
-            lines = cell_source.split("\n")
+            lines = [_comment_line_magic(line) for line in cell_source.split("\n")]
             mapper.cells[i] = cell_source
 
             # Add to concatenated source; strict line mapping maps back to cells.
