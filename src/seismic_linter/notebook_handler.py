@@ -51,11 +51,14 @@ def map_violations(
 # cell magic (%%bash, %%html, %%writefile, ...) makes the whole cell non-Python.
 _PYTHON_CELL_MAGICS = {"time", "timeit", "capture", "prun"}
 
-# A line magic that runs one Python statement, as in %time x = expr. Flags such as
-# -n 10 are dropped and the statement is kept.
-_PYTHON_LINE_MAGIC_RE = re.compile(
-    r"^(\s*)%(?:time|timeit|prun)(?:\s+-[A-Za-z]+(?:\s+[\d.]+)?)*\s+(.*)$"
-)
+# A line magic that runs one Python statement after its options, as in %time x = expr
+# or %timeit -n 10 -r 3 expr. The options are dropped and the statement is kept.
+_PYTHON_LINE_MAGIC_RE = re.compile(r"^(\s*)%(time|timeit|prun)(?=\s|$)(.*)$")
+
+# Options of those magics that take a value, as in -n 10 or -s cumulative. Any other
+# letter is a flag that takes none, as in -o or -q. %time takes no options of its
+# own, but the ones it accepted before are still dropped.
+_TIMING_VALUE_OPTIONS = {"time": "nrp", "timeit": "nrp", "prun": "DlsT"}
 
 
 def _comment_out(line: str) -> str:
@@ -93,6 +96,28 @@ def _starts_statement(lines: List[str]) -> bool:
     return True
 
 
+def _timing_statement(magic: str, options: str) -> str:
+    """
+    Returns the statement that a timing magic runs, without its options. Options
+    are read the way getopt reads them: a flag consumes only its own letter, and a
+    letter that takes a value consumes the rest of its word or else the next word,
+    so -n10, -n 10 and -s cumulative each take their value.
+    """
+    value_letters = _TIMING_VALUE_OPTIONS[magic]
+    rest = options.lstrip()
+    word = re.match(r"-([A-Za-z]+)(\S*)\s*", rest)
+    while word:
+        letters, attached = word.group(1), word.group(2)
+        rest = rest[word.end() :]
+        for i, letter in enumerate(letters):
+            if letter in value_letters:
+                if not letters[i + 1 :] + attached:
+                    rest = re.sub(r"^\S*\s*", "", rest, count=1)
+                break
+        word = re.match(r"-([A-Za-z]+)(\S*)\s*", rest)
+    return rest
+
+
 def _to_python_lines(lines: List[str]) -> List[str]:
     """
     Returns the cell lines with each line magic or shell escape commented out.
@@ -109,7 +134,8 @@ def _to_python_lines(lines: List[str]) -> List[str]:
         elif _LINE_MAGIC_RE.match(line) and _starts_statement(python_lines):
             timed = _PYTHON_LINE_MAGIC_RE.match(line)
             if timed:
-                python_lines.append(f"{timed.group(1)}{timed.group(2)}")
+                statement = _timing_statement(timed.group(2), timed.group(3))
+                python_lines.append(f"{timed.group(1)}{statement}")
             else:
                 python_lines.append(_comment_line_magic(line))
                 in_magic = line.rstrip().endswith("\\")

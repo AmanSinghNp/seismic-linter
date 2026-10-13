@@ -1,4 +1,5 @@
 import nbformat
+import pytest
 from seismic_linter.analyzer import analyze_file
 from seismic_linter.notebook_handler import _comment_line_magic, parse_notebook
 
@@ -185,4 +186,49 @@ def test_timing_line_magic_keeps_its_statement(tmp_path):
     assert [(v.rule_id, v.lineno) for v in violations if v.rule_id == "T001"] == [
         ("T001", 3),
         ("T001", 4),
+    ]
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "%timeit -n1 -r1 y = f(1)",
+        "%timeit -n10 y = f(1)",
+        "%timeit -n 10 -r3 y = f(1)",
+        "%timeit -o y = f(1)",
+        "%timeit -oq -n5 y = f(1)",
+        "%prun -s cumulative y = f(1)",
+        "%prun -D out.prof y = f(1)",
+        "%prun -l 10 y = f(1)",
+        "%prun -r y = f(1)",
+        "%time -n 10 y = f(1)",
+    ],
+)
+def test_timing_magic_options_are_dropped(tmp_path, line):
+    """Compact and non-numeric options are dropped, so the statement still parses."""
+    path = _write_notebook(tmp_path, [[line + "\n", "print(y)"]])
+
+    source, _ = parse_notebook(path)
+
+    assert source.split("\n")[0] == "y = f(1)"
+    assert not [v for v in analyze_file(path) if v.rule_id == "E001"]
+
+
+def test_timing_magic_options_do_not_hide_findings(tmp_path):
+    """A syntax error would replace every finding in the notebook, so none may hide."""
+    path = _write_notebook(
+        tmp_path,
+        [
+            [
+                "%prun -s cumulative m = df['a'].mean()\n",
+                "%timeit -n10 -r3 s = df['a'].std()",
+            ],
+        ],
+    )
+
+    violations = analyze_file(path)
+
+    assert [(v.rule_id, v.lineno) for v in violations] == [
+        ("T001", 1),
+        ("T001", 2),
     ]
