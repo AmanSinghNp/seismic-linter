@@ -18,6 +18,18 @@ UNSAFE_SUBSTRING_NAMES = ["test", "val", "full", "all", "whole", "entire"]
 SAFE_SUBSTRING_NAMES = ["train", "trn", "training", "fit", "sample", "resampled"]
 
 
+def _has_unsafe_word(name_lower: str) -> bool:
+    """
+    True if a word in a snake_case name starts with an unsafe marker.
+    Matching words rather than raw substrings keeps names such as "small"
+    or "call" from matching "all".
+    """
+    words = re.split(r"[^a-z0-9]+", name_lower)
+    return any(
+        word.startswith(marker) for word in words for marker in UNSAFE_SUBSTRING_NAMES
+    )
+
+
 def extract_suppressions(source: str) -> Dict[int, Set[str]]:
     """
     Parse source code to find suppression comments.
@@ -37,7 +49,8 @@ def extract_suppressions(source: str) -> Dict[int, Set[str]]:
                 # Match: # seismic-linter: ignore Txxx ...
                 match = re.search(r"seismic-linter:\s*ignore\s+(.+)$", content)
                 if match:
-                    rules_str = match.group(1)
+                    # Anything after a second '#' is a free-text note, not rule IDs
+                    rules_str = match.group(1).split("#", 1)[0]
                     # Split by space/comma
                     rules = set(
                         r.strip() for r in re.split(r"[,\s]+", rules_str) if r.strip()
@@ -204,7 +217,7 @@ class TemporalAnalyzer(ast.NodeVisitor):
 
         if name_lower in UNSAFE_EXACT_NAMES:
             is_suspicious = True
-        elif any(s in name_lower for s in UNSAFE_SUBSTRING_NAMES):
+        elif _has_unsafe_word(name_lower):
             is_suspicious = True
 
         if is_suspicious:
