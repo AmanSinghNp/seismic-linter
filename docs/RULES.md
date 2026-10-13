@@ -20,6 +20,8 @@ df['val_norm'] = (df['val'] - df['val'].mean()) # seismic-linter: ignore T001
 
 **Limitations**: Currently, only `groupby`, `rolling`, `expanding`, and `resample` are recognized as "safe" predecessors. Other temporal transformations (e.g. `ewm`, custom wrappers) may trigger false positives and should be suppressed if correct.
 
+Statistics over an explicit slice (e.g. `df[:split].mean()`, `np.max(cft[i, on:off])`) and error metrics over a difference of two arrays (e.g. `np.mean((pred - target) ** 2)`) are not reported, because they do not normalize over the whole series. Unbounded slices such as `df[:]` and constant shifts such as `np.mean(x - 1)` are still reported. A difference of two raw series, such as `np.mean(df.close - df.open)`, is also not reported, so check those by hand.
+
 ### T002: Premature Fitting
 **Severity**: Info
 **Description**: Warns about `fit()` operations called on likely non-training data (e.g., raw `df`, `data`, `X`).
