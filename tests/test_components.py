@@ -14,9 +14,28 @@ def test_parse_notebook_simple(tmp_path):
     # Create simple notebook
     nb_content = {
         "cells": [
-            {"cell_type": "code", "source": ["import os\n", "x = 1"], "metadata": {}},
-            {"cell_type": "markdown", "source": ["# Docs"], "metadata": {}},
-            {"cell_type": "code", "source": ["y = 2"], "metadata": {}},
+            {
+                "cell_type": "code",
+                "id": "cell-0",
+                "source": ["import os\n", "x = 1"],
+                "metadata": {},
+                "outputs": [],
+                "execution_count": None,
+            },
+            {
+                "cell_type": "markdown",
+                "id": "cell-1",
+                "source": ["# Docs"],
+                "metadata": {},
+            },
+            {
+                "cell_type": "code",
+                "id": "cell-2",
+                "source": ["y = 2"],
+                "metadata": {},
+                "outputs": [],
+                "execution_count": None,
+            },
         ],
         "metadata": {},
         "nbformat": 4,
