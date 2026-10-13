@@ -1,9 +1,14 @@
+import re
 import nbformat
 from dataclasses import replace
 from pathlib import Path
 
 from typing import Dict, List, Optional, Tuple
 from .rules import Violation
+
+# A line magic (%matplotlib) or shell escape (!pip). Continuation lines that begin
+# with an operator, such as "% n" or "!= 0", are plain Python and are left alone.
+_LINE_MAGIC_RE = re.compile(r"^\s*(%[A-Za-z_]|!(?!=)\S)")
 
 
 class NotebookMapper:
@@ -46,8 +51,8 @@ def _comment_line_magic(line: str) -> str:
     (!pip install ...) so the rest of the cell still parses. Indentation is kept
     and the line count is unchanged, so line mapping stays valid.
     """
-    stripped = line.lstrip()
-    if stripped.startswith(("%", "!")):
+    if _LINE_MAGIC_RE.match(line):
+        stripped = line.lstrip()
         indent = line[: len(line) - len(stripped)]
         return f"{indent}# {stripped}"
     return line

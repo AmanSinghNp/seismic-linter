@@ -69,3 +69,18 @@ def test_cell_magic_cell_is_skipped(tmp_path):
     assert all(cell_idx != 0 for cell_idx, _ in mapper.virtual_lines.values())
     assert not [v for v in violations if v.rule_id == "E001"]
     assert [v.cell_id for v in violations if v.rule_id == "T001"] == [2]
+
+
+def test_continuation_lines_with_operators_are_not_magics(tmp_path):
+    """'!= 0' and '% n' on a continuation line are Python, not magics."""
+    path = _write_notebook(
+        tmp_path,
+        [["flag = (df['a']\n", "        != 0)\n", "rem = (total\n", "       % n)"]],
+    )
+
+    source, _ = parse_notebook(path)
+    violations = analyze_file(path)
+
+    assert "        != 0)" in source
+    assert "       % n)" in source
+    assert not [v for v in violations if v.rule_id == "E001"]
