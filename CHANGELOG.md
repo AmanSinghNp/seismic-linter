@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Encoding**: Python files saved with a UTF-8 byte order mark are no longer reported as E001 syntax errors.
-- **T001**: Statistics over an explicit slice (`x[:split]`, `cft[i, on:off]`) and error metrics over a difference of two arrays (`(pred - target) ** 2`) are no longer reported. Unbounded slices and plain squared series still are.
+- **T001**: Statistics over a slice with an explicit stop (`x[:split]`, `cft[i, on:off]`) and error metrics over a difference of two arrays (`(pred - target) ** 2`) are no longer reported. Slices without a stop, such as `x[:]` or the tail `x[split:]`, and plain squared series still are.
 - **Exclude Patterns**: Default excludes (e.g. `build`, `venv`) match only path segments below the scanned directory, so a project stored under such a directory is no longer skipped silently.
 - **Notebooks**: IPython line magics and shell escapes, including backslash-continued ones, no longer make the whole notebook fail with E001. A `%name` continuation line inside brackets is Python, not a magic. Cells with a non-Python cell magic (`%%bash`) are skipped, while `%%time`, `%%timeit`, `%%capture` and `%%prun` keep their Python body and `%time x = expr` keeps its statement.
 - **T002**: Unsafe names are matched by word, so names such as `small` or `call_features` no longer trigger.

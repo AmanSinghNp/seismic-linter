@@ -149,6 +149,14 @@ def test_t001_unbounded_or_step_only_slices_still_flagged():
     assert _rule_ids("df[::2].mean()") == ["T001"]
 
 
+def test_t001_tail_slice_without_stop_is_still_flagged():
+    """df[split:] runs to the end of the series, so it is not a bounded window."""
+    assert _rule_ids("train_stats = df[split:].mean()") == ["T001"]
+    assert _rule_ids("df[100:].std()") == ["T001"]
+    assert _rule_ids("df.iloc[split:].std()") == ["T001"]
+    assert _rule_ids("snr = np.max(cft[trace_index, on:])") == ["T001"]
+
+
 def test_t001_error_metric_over_difference_is_safe():
     """Residuals between prediction and reference are evaluation, not fitting."""
     assert _rule_ids("rms = np.mean((pred - target) ** 2)") == []

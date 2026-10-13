@@ -58,7 +58,7 @@ The exit code is `1` when any error-severity rule or any rule in `fail-on` is re
 
 | ID | Severity | Description |
 |----|----------|-------------|
-| **T001** | ⚠️ Warning | **Global Statistics**: Computing aggregate statistics (mean, std, var, min, max, normalize) on what appears to be a global DataFrame without grouping or rolling windows. Statistics over an explicit slice (`x[:split]`) or an error metric over a difference of two arrays (`(pred - target) ** 2`) are not reported. |
+| **T001** | ⚠️ Warning | **Global Statistics**: Computing aggregate statistics (mean, std, var, min, max, normalize) on what appears to be a global DataFrame without grouping or rolling windows. Statistics over a slice with an explicit stop (`x[:split]`) or an error metric over a difference of two arrays (`(pred - target) ** 2`) are not reported. |
 | **T002** | ℹ️ Info | **Unsafe Usage**: Calling `.fit()` on variables named generic terms like `df` or `data` instead of explicit training splits (`train_df`, `X_train`). |
 | **T003** | ❌ Error | **Random Splitting**: Using `train_test_split` with `shuffle=True` (or without explicitly setting `shuffle=False`), which violates temporal causality. |
 

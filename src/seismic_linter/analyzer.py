@@ -50,17 +50,14 @@ def _call_operand(call: ast.Call) -> Optional[ast.AST]:
     return None
 
 
-def _has_bounded_slice(index: ast.AST) -> bool:
+def _has_stop_slice(index: ast.AST) -> bool:
     """
-    True if a subscript has a slice with a start or a stop, as in x[:split]
-    or cft[trace, on:off]. A bare x[:] or a step-only x[::2] does not count.
+    True if a subscript has a slice with a stop, as in x[:split] or cft[trace, on:off].
+    A start-only tail such as x[split:] runs to the end of the series, so it does
+    not count. Neither do a bare x[:] or a step-only x[::2].
     """
     parts = index.elts if isinstance(index, ast.Tuple) else [index]
-    return any(
-        isinstance(part, ast.Slice)
-        and (part.lower is not None or part.upper is not None)
-        for part in parts
-    )
+    return any(isinstance(part, ast.Slice) and part.upper is not None for part in parts)
 
 
 def extract_suppressions(source: str) -> Dict[int, Set[str]]:
@@ -183,7 +180,7 @@ class TemporalAnalyzer(ast.NodeVisitor):
             return False
         operand = self._unwrap_elementwise(operand)
         if isinstance(operand, ast.Subscript):
-            return _has_bounded_slice(operand.slice)
+            return _has_stop_slice(operand.slice)
         if isinstance(operand, ast.BinOp) and isinstance(operand.op, ast.Sub):
             # A shift by a constant (x - 1) is not a comparison of two arrays
             return not (
