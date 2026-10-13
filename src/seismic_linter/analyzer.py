@@ -70,6 +70,18 @@ def _has_stop_slice(index: ast.AST) -> bool:
     return any(isinstance(part, ast.Slice) and part.upper is not None for part in parts)
 
 
+def _time_slice(expr: ast.AST) -> Optional[ast.Slice]:
+    """
+    The slice that picks rows of a series, looking through attribute and column
+    selections, as in df[1:].close. A tuple index such as cft[i, on:off] has none.
+    """
+    while isinstance(expr, (ast.Attribute, ast.Subscript)):
+        if isinstance(expr, ast.Subscript) and isinstance(expr.slice, ast.Slice):
+            return expr.slice
+        expr = expr.value
+    return None
+
+
 def extract_suppressions(source: str) -> Dict[int, Set[str]]:
     """
     Parse source code to find suppression comments.
@@ -198,10 +210,24 @@ class TemporalAnalyzer(ast.NodeVisitor):
                 operand.right, ast.Constant
             ):
                 return False
-            return not (
-                self._is_temporal(operand.left) or self._is_temporal(operand.right)
-            )
+            return not self._moves_over_time(operand.left, operand.right)
         return False
+
+    def _moves_over_time(self, left: ast.AST, right: ast.AST) -> bool:
+        """
+        True if a difference moves along time, as in x - x.shift(1), or compares
+        two slices at different offsets, as in x[1:] - x[:-1]. The mean of the lag
+        telescopes to its last value, which is the pattern T001 reports.
+        """
+        if self._is_temporal(left) or self._is_temporal(right):
+            return True
+        left_slice = _time_slice(left)
+        right_slice = _time_slice(right)
+        return (
+            left_slice is not None
+            and right_slice is not None
+            and ast.dump(left_slice) != ast.dump(right_slice)
+        )
 
     def _is_temporal(self, expr: ast.AST) -> bool:
         """True if an expression moves values along time, as in x.shift(1)."""

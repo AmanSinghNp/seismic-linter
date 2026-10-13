@@ -182,6 +182,20 @@ def test_t001_difference_over_time_is_still_flagged():
     assert _rule_ids("rms = np.mean((pred - target.shift(1)) ** 2)") == ["T001"]
 
 
+def test_t001_lagged_slices_are_still_flagged():
+    """x[1:] - x[:-1] is a lag written with slices, so it is reported too."""
+    assert _rule_ids("m = np.mean(x[1:] - x[:-1])") == ["T001"]
+    assert _rule_ids("m = np.mean(df.close[1:] - df.close[:-1])") == ["T001"]
+    assert _rule_ids("m = np.mean(df[1:].close - df[:-1].close)") == ["T001"]
+    assert _rule_ids("m = np.mean(np.abs(x[1:] - x[:-1]))") == ["T001"]
+
+
+def test_t001_same_slice_on_both_sides_is_still_safe():
+    """Two arrays cut to the same rows are compared row by row, not over time."""
+    assert _rule_ids("rms = np.mean((pred[1:] - target[1:]) ** 2)") == []
+    assert _rule_ids("m = np.mean(cft[i, on:off] - cft[j, on:off])") == []
+
+
 def test_t001_loss_on_method_chain_over_difference_is_safe():
     """torch-friction computes an MSE loss with .pow(2).mean() on a difference."""
     source = "loss = (predictions - target_friction).pow(2).mean()"
