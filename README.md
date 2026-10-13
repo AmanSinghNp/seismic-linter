@@ -123,6 +123,8 @@ repos:
       - id: seismic-linter
 ```
 
+The hook is defined in `.pre-commit-hooks.yaml`. That file was added after the `v0.2.0` tag, so pin `rev` to a release tagged later than that, or to `main`.
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on setting up the developments environment and running tests.

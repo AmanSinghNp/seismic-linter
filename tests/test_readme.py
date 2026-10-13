@@ -83,3 +83,14 @@ def test_rules_table_severity_matches_registry(rule_id):
     row = next(line for line in text.splitlines() if f"**{rule_id}**" in line)
     expected = {"warning": "Warning", "info": "Info", "error": "Error"}
     assert expected[RULES[rule_id].severity] in row
+
+
+def test_pre_commit_manifest_defines_documented_hook():
+    yaml = pytest.importorskip("yaml")
+    manifest_path = README.parent / ".pre-commit-hooks.yaml"
+    manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+
+    hook = next(h for h in manifest if h["id"] == "seismic-linter")
+    assert hook["entry"] == "seismic-linter"
+    assert hook["language"] == "python"
+    assert set(hook["types_or"]) == {"python", "jupyter"}

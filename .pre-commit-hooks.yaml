@@ -1,0 +1,6 @@
+- id: seismic-linter
+  name: seismic-linter
+  description: Detect temporal causality leaks in Python and Jupyter files
+  entry: seismic-linter
+  language: python
+  types_or: [python, jupyter]
