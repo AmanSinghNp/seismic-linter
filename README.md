@@ -34,9 +34,18 @@ seismic-linter ./src
 
 **Example Output:**
 ```text
-src/models/train.py:45:5 [T001] Global mean() computed without temporal context.
-src/data/loader.py:12:1  [T003] train_test_split call uses shuffle=True (unsafe).
+=== Seismic Linter Scan ===
+
+File: /path/to/project/src/models/train.py
+  ❌ [Line 5] T001: Global mean() may cause temporal leakage. Consider using rolling window or ensure causality.
+     Context: Computing mean without detected temporal boundaries
+  ❌ [Line 7] T003: train_test_split used with shuffle=True on time series (shuffle must be explicitly False)
+     Context: Random splitting violates temporal causality
+
+Found 2 potential violation(s).
 ```
+
+The exit code is `1` when any error-severity rule or any rule in `fail-on` is reported, and `0` otherwise. Use `--output json` or `--output github` for machine-readable output.
 
 ## Features
 
@@ -49,7 +58,7 @@ src/data/loader.py:12:1  [T003] train_test_split call uses shuffle=True (unsafe)
 
 | ID | Severity | Description |
 |----|----------|-------------|
-| **T001** | ⚠️ Warning | **Global Statistics**: Computing aggregate statistics (mean, std, min, max) on what appears to be a global DataFrame without grouping or rolling windows. |
+| **T001** | ⚠️ Warning | **Global Statistics**: Computing aggregate statistics (mean, std, var, min, max, normalize) on what appears to be a global DataFrame without grouping or rolling windows. |
 | **T002** | ℹ️ Info | **Unsafe Usage**: Calling `.fit()` on variables named generic terms like `df` or `data` instead of explicit training splits (`train_df`, `X_train`). |
 | **T003** | ❌ Error | **Random Splitting**: Using `train_test_split` with `shuffle=True` (or without explicitly setting `shuffle=False`), which violates temporal causality. |
 
@@ -65,6 +74,11 @@ fail-on = ["T003"]            # Only exit with error code for T003
 ignore = ["T002"]             # Completely silence T002 rules
 ```
 
+- `include` replaces the default of scanning the whole project. Entries can be directories, files or globs.
+- `exclude` and `ignore` are added to the defaults. `exclude` defaults to `.git`, `__pycache__`, `.venv`, `venv`, `.env`, `build` and `dist`, matched against path segments below the scanned directory.
+- `fail-on` replaces the default list `["T001", "T003"]`. Error-severity findings (for example T003 and syntax errors) always fail the run.
+- Keys may also be written with underscores (`fail_on`). The CLI flags `--ignore` and `--fail-on` override the config values.
+
 ### Inline Suppression
 
 Ignore specific violations on a single line using a comment:
@@ -79,17 +93,22 @@ baseline = df['mag'].mean()  # seismic-linter: ignore T001
 For critical pipelines, add runtime checks to ensure data integrity.
 
 ```python
+import pandas as pd
 from seismic_linter import verify_monotonicity, validate_split_integrity
 
 # 1. Decorator to ensure DataFrame is sorted by time
-@verify_monotonicity(time_column="time")
+@verify_monotonicity(time_col="time")
 def load_catalogue(path):
-    return pd.read_csv(path)
+    return pd.read_csv(path, parse_dates=["time"])
 
-# 2. explicit check after splitting
-train, test = split_data(df)
-validate_split_integrity(train, test, time_column="time") 
-# Raises TemporalCausalityError if any test timestamp predates a training timestamp
+df = load_catalogue("catalogue.csv")
+
+# 2. Explicit check after splitting on a fixed date cutoff
+cutoff = pd.Timestamp("2020-01-01")
+train = df[df["time"] < cutoff]
+test = df[df["time"] >= cutoff]
+validate_split_integrity(train, test, time_col="time")
+# Raises TemporalCausalityError if the test set does not start after the training set ends
 ```
 
 ## Pre-commit Hook

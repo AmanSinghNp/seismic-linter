@@ -4,7 +4,7 @@
 
 ### T001: Global Statistics
 **Severity**: Warning
-**Description**: Detects use of global statistical operations (mean, std, min, max, normalize) on DataFrames without preceding grouping or rolling windows.
+**Description**: Detects use of global statistical operations (mean, std, var, min, max, normalize) on DataFrames without preceding grouping or rolling windows.
 **Reasoning**: Global statistics leak future information into the past if the data is a time series.
 **Example**:
 ```python
