@@ -47,6 +47,17 @@ def map_violations(
     return mapped
 
 
+# Cell magics whose body runs as Python, as in %%time or %%capture out. Any other
+# cell magic (%%bash, %%html, %%writefile, ...) makes the whole cell non-Python.
+_PYTHON_CELL_MAGICS = {"time", "timeit", "capture", "prun"}
+
+# A line magic that runs one Python statement, as in %time x = expr. Flags such as
+# -n 10 are dropped and the statement is kept.
+_PYTHON_LINE_MAGIC_RE = re.compile(
+    r"^(\s*)%(?:time|timeit|prun)(?:\s+-[A-Za-z]+(?:\s+[\d.]+)?)*\s+(.*)$"
+)
+
+
 def _comment_out(line: str) -> str:
     """Comments out one physical line and keeps its indentation."""
     stripped = line.lstrip()
@@ -85,8 +96,9 @@ def _starts_statement(lines: List[str]) -> bool:
 def _to_python_lines(lines: List[str]) -> List[str]:
     """
     Returns the cell lines with each line magic or shell escape commented out.
-    A backslash-continued magic also comments out the lines it continues, so the
-    rest of the cell still parses. The line count is unchanged.
+    A timing magic keeps its statement, and a backslash-continued magic also
+    comments out the lines it continues, so the rest of the cell still parses.
+    The line count is unchanged.
     """
     python_lines: List[str] = []
     in_magic = False  # the last commented line ends with a backslash
@@ -95,11 +107,31 @@ def _to_python_lines(lines: List[str]) -> List[str]:
             python_lines.append(_comment_out(line))
             in_magic = line.rstrip().endswith("\\")
         elif _LINE_MAGIC_RE.match(line) and _starts_statement(python_lines):
-            python_lines.append(_comment_line_magic(line))
-            in_magic = line.rstrip().endswith("\\")
+            timed = _PYTHON_LINE_MAGIC_RE.match(line)
+            if timed:
+                python_lines.append(f"{timed.group(1)}{timed.group(2)}")
+            else:
+                python_lines.append(_comment_line_magic(line))
+                in_magic = line.rstrip().endswith("\\")
         else:
             python_lines.append(line)
     return python_lines
+
+
+def _cell_to_python(source: str) -> Optional[List[str]]:
+    """
+    Returns the Python lines of a code cell, or None if the cell is skipped.
+    A cell magic whose body is not Python skips the cell. A cell magic that runs
+    Python, such as %%time, keeps its body and only its magic line is commented.
+    """
+    lines = source.split("\n")
+    head = next((i for i, line in enumerate(lines) if line.strip()), None)
+    if head is not None and lines[head].lstrip().startswith("%%"):
+        names = lines[head].lstrip()[2:].split()
+        if not names or names[0] not in _PYTHON_CELL_MAGICS:
+            return None
+        lines[head] = _comment_out(lines[head])
+    return _to_python_lines(lines)
 
 
 def parse_notebook(filepath: Path) -> Tuple[str, NotebookMapper]:
@@ -109,8 +141,9 @@ def parse_notebook(filepath: Path) -> Tuple[str, NotebookMapper]:
     2. A mapper object to translate line numbers back to cells.
 
     IPython line magics and shell escapes are commented out. Cells that start
-    with a cell magic (%%bash, %%html, ...) are skipped, since their body is not
-    Python.
+    with a cell magic whose body is not Python (%%bash, %%html, ...) are skipped.
+    Cell magics that run Python (%%time, %%timeit, %%capture, %%prun) keep their
+    body, and timing line magics (%time x = expr) keep their statement.
     """
     with open(filepath, "r", encoding="utf-8") as f:
         nb = nbformat.read(f, as_version=4)
@@ -133,12 +166,12 @@ def parse_notebook(filepath: Path) -> Tuple[str, NotebookMapper]:
             if not cell_source:
                 continue
 
-            # A cell magic switches the whole cell to another language.
-            if cell_source.lstrip().startswith("%%"):
+            # A cell magic whose body is not Python switches the whole cell.
+            lines = _cell_to_python(cell_source)
+            if lines is None:
                 continue
 
             # Split into lines to track line numbers
-            lines = _to_python_lines(cell_source.split("\n"))
             mapper.cells[i] = cell_source
 
             # Add to concatenated source; strict line mapping maps back to cells.

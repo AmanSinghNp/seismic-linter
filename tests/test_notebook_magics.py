@@ -122,3 +122,67 @@ def test_backslash_continued_shell_escape_is_fully_commented(tmp_path):
     assert "    # pandas" in source
     assert not [v for v in violations if v.rule_id == "E001"]
     assert [(v.rule_id, v.cell_id) for v in violations] == [("T001", 2)]
+
+
+def test_python_cell_magic_body_is_still_analyzed(tmp_path):
+    """%%time, %%capture and %%timeit run Python, so their bodies are analyzed."""
+    path = _write_notebook(
+        tmp_path,
+        [
+            ["%%time\n", 'baseline = df["mag"].mean()\n', "print(baseline)"],
+            ["%%capture out\n", 'level = df["x"].std()'],
+            ["%%timeit -n 1\n", 'df["b"].mean()'],
+            ["%%bash\n", "echo hi"],
+            ['y = df["close"].mean()'],
+        ],
+    )
+
+    violations = analyze_file(path)
+
+    assert not [v for v in violations if v.rule_id == "E001"]
+    assert [(v.cell_id, v.lineno) for v in violations if v.rule_id == "T001"] == [
+        (1, 2),
+        (2, 2),
+        (3, 2),
+        (5, 1),
+    ]
+
+
+def test_non_python_cell_magics_are_skipped(tmp_path):
+    path = _write_notebook(
+        tmp_path,
+        [
+            ["%%html\n", "<b>df['a'].mean()</b>"],
+            ["%%writefile out.py\n", "df['a'].mean()"],
+        ],
+    )
+
+    source, mapper = parse_notebook(path)
+
+    assert source.strip() == ""
+    assert analyze_file(path) == []
+
+
+def test_timing_line_magic_keeps_its_statement(tmp_path):
+    """'%time x = expr' runs expr, so the statement is analyzed without the magic."""
+    path = _write_notebook(
+        tmp_path,
+        [
+            [
+                "import pandas as pd\n",
+                'df = pd.DataFrame({"a": [1, 2]})\n',
+                '%time m = df["a"].mean()\n',
+                '%timeit -n 10 -r 3 s = df["a"].std()',
+            ],
+        ],
+    )
+
+    source, _ = parse_notebook(path)
+    violations = analyze_file(path)
+
+    assert 'm = df["a"].mean()' in source
+    assert "%time" not in source
+    assert [(v.rule_id, v.lineno) for v in violations if v.rule_id == "T001"] == [
+        ("T001", 3),
+        ("T001", 4),
+    ]

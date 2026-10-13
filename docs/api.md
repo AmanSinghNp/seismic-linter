@@ -15,7 +15,7 @@ print(__version__)
 
 All file reads use UTF-8 encoding; files in other encodings may cause analysis errors (E000).
 
-Notebooks are converted to Python before analysis. IPython line magics (`%matplotlib inline`) and shell escapes (`!pip install ...`) are commented out so the rest of the cell still parses. Cells whose first line is a cell magic (`%%bash`, `%%html`, ...) are skipped because their body is not Python.
+Notebooks are converted to Python before analysis. IPython line magics (`%matplotlib inline`) and shell escapes (`!pip install ...`) are commented out so the rest of the cell still parses, including backslash-continued lines. A timing magic keeps its statement, so `%time x = expr` is analyzed as `x = expr`. Cells whose first line is a cell magic whose body is not Python (`%%bash`, `%%html`, `%%writefile`, ...) are skipped. Cell magics that run Python (`%%time`, `%%timeit`, `%%capture`, `%%prun`) keep their body.
 
 ### `analyze_file`
 
