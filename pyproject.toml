@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,14 +9,13 @@ description = "A static analysis tool for preventing temporal causality leaks in
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "Aman Singh", email = "maintainers@seismic-linter.org"}]
-license = {text = "MIT"}
+license = "MIT"
 keywords = ["seismology", "machine-learning", "static-analysis", "linter", "temporal-leakage"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Software Development :: Quality Assurance",
