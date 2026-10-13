@@ -154,6 +154,20 @@ def test_t001_statistic_over_bounded_window_is_safe():
     assert _rule_ids("train_stats = df.iloc[:split].std()") == []
 
 
+def test_t001_column_of_bounded_window_is_safe():
+    """A column or attribute of a bounded window is still inside that window."""
+    assert _rule_ids("m = df[:split].close.mean()") == []
+    assert _rule_ids("m = df[:split]['close'].mean()") == []
+    assert _rule_ids("m = np.max(df[:split].values)") == []
+    assert _rule_ids("m = np.std(np.abs(df[:split].close))") == []
+    assert _rule_ids("m = df[:split].close.abs().mean()") == []
+
+
+def test_t001_column_of_tail_slice_is_still_flagged():
+    assert _rule_ids("m = df[split:].close.mean()") == ["T001"]
+    assert _rule_ids("m = df['close'][split:].mean()") == ["T001"]
+
+
 def test_t001_unbounded_or_step_only_slices_still_flagged():
     assert _rule_ids("df[:].mean()") == ["T001"]
     assert _rule_ids("df[::2].mean()") == ["T001"]

@@ -82,6 +82,18 @@ def _time_slice(expr: ast.AST) -> Optional[ast.Slice]:
     return None
 
 
+def _is_window(expr: ast.AST) -> bool:
+    """
+    True if an expression is an explicit window, as in df[:split], or a column or
+    attribute of one, as in df[:split].close or df[:split]["close"].
+    """
+    while isinstance(expr, (ast.Attribute, ast.Subscript)):
+        if isinstance(expr, ast.Subscript) and _has_stop_slice(expr.slice):
+            return True
+        expr = expr.value
+    return False
+
+
 def extract_suppressions(source: str) -> Dict[int, Set[str]]:
     """
     Parse source code to find suppression comments.
@@ -201,8 +213,8 @@ class TemporalAnalyzer(ast.NodeVisitor):
         if operand is None:
             return False
         operand = self._unwrap_elementwise(operand)
-        if isinstance(operand, ast.Subscript):
-            return _has_stop_slice(operand.slice)
+        if _is_window(operand):
+            return True
         if isinstance(operand, ast.BinOp) and isinstance(operand.op, ast.Sub):
             # A shift by a constant (x - 1) is not a comparison of two arrays, and
             # a difference over time (x - x.shift(1), returns) is not an error metric
