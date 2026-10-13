@@ -112,3 +112,25 @@ def test_analyze_file_uses_pyproject_directory_for_cache(tmp_path):
     assert [v.rule_id for v in violations] == ["T001"]
     assert any((project / ".seismic_cache").glob("*.json"))
     assert not Path(py_file.parent / ".seismic_cache").exists()
+
+
+# --- Byte order marks: Windows editors write a UTF-8 BOM that is not code ---
+def test_analyze_path_accepts_utf8_bom(tmp_path):
+    py_file = tmp_path / "bom.py"
+    py_file.write_bytes(b"\xef\xbb\xbfdf.mean()\n")
+
+    violations, _ = analyze_path(py_file)
+
+    assert [(v.rule_id, v.lineno) for v in violations] == [("T001", 1)]
+
+
+def test_analyze_file_accepts_utf8_bom(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / "pyproject.toml").write_text("[project]\nname='p'\n", encoding="utf-8")
+    py_file = project / "bom.py"
+    py_file.write_bytes(b"\xef\xbb\xbfdf.mean()\n")
+
+    violations = analyze_file(py_file)
+
+    assert [v.rule_id for v in violations] == ["T001"]

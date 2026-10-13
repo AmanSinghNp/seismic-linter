@@ -193,3 +193,15 @@ def test_print_formatting_unit(capsys):
     print_text({"test.py": violations}, set(), set())
     captured = capsys.readouterr()
     assert "⚠️" in captured.out
+
+
+def test_cli_scans_utf8_bom_file_without_syntax_error(tmp_path, monkeypatch, capsys):
+    py_file = tmp_path / "bom.py"
+    py_file.write_bytes(b"\xef\xbb\xbfdf.mean()\n")
+
+    rc, out, err = run_cli_in_process(
+        ["--output", "json", str(py_file)], tmp_path, monkeypatch, capsys
+    )
+
+    rule_ids = [v["rule_id"] for v in json.loads(out)]
+    assert rule_ids == ["T001"]

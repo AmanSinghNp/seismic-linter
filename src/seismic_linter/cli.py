@@ -227,7 +227,8 @@ def main():
 
         try:
             if f.suffix == ".py":
-                with open(f, "r", encoding="utf-8") as file_obj:
+                # Same encoding as analyze_path, so the cache hash matches
+                with open(f, "r", encoding="utf-8-sig") as file_obj:
                     source = file_obj.read()
             elif f.suffix == ".ipynb":
                 # Parsing is needed to get canonical source for hash

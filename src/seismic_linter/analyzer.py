@@ -304,7 +304,8 @@ def analyze_path(
         if filepath.suffix == ".ipynb":
             source, mapper = parse_notebook(filepath)
         else:
-            with open(filepath, "r", encoding="utf-8") as f:
+            # utf-8-sig drops a leading byte order mark that ast.parse rejects
+            with open(filepath, "r", encoding="utf-8-sig") as f:
                 source = f.read()
 
     content_hash = ContentCache.compute_hash(source)
@@ -339,7 +340,8 @@ def analyze_file(filepath: Path, cache_root: Optional[Path] = None) -> List[Viol
         if filepath.suffix == ".ipynb":
             source, mapper = parse_notebook(filepath)
         else:
-            with open(filepath, "r", encoding="utf-8") as f:
+            # utf-8-sig drops a leading byte order mark that ast.parse rejects
+            with open(filepath, "r", encoding="utf-8-sig") as f:
                 source = f.read()
 
         content_hash = ContentCache.compute_hash(source)
