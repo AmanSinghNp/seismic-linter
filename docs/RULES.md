@@ -20,7 +20,7 @@ df['val_norm'] = (df['val'] - df['val'].mean()) # seismic-linter: ignore T001
 
 **Limitations**: Currently, only `groupby`, `rolling`, `expanding`, and `resample` are recognized as "safe" predecessors. Other temporal transformations (e.g. `ewm`, custom wrappers) may trigger false positives and should be suppressed if correct.
 
-Statistics over a slice with an explicit stop (e.g. `df[:split].mean()`, `np.max(cft[i, on:off])`) and error metrics over a difference of two arrays (e.g. `np.mean((pred - target) ** 2)`) are not reported, because they do not normalize over the whole series. Slices without a stop are still reported, including the tail `df[split:]` that runs to the end of the series, as are constant shifts such as `np.mean(x - 1)`. A difference of two raw series, such as `np.mean(df.close - df.open)`, is also not reported, so check those by hand.
+Statistics over a slice with an explicit stop (e.g. `df[:split].mean()`, `np.max(cft[i, on:off])`) and error metrics over a difference of two arrays (e.g. `np.mean((pred - target) ** 2)`) are not reported, because they do not normalize over the whole series. Slices without a stop are still reported, including the tail `df[split:]` that runs to the end of the series, as are constant shifts such as `np.mean(x - 1)`. A difference of two raw series, such as `np.mean(df.close - df.open)`, is also not reported, so check those by hand. A difference that moves along time, such as a return `df.close - df.close.shift(1)` or a lagged difference, is reported.
 
 ### T002: Premature Fitting
 **Severity**: Info

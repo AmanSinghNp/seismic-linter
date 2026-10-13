@@ -33,6 +33,9 @@ def _has_unsafe_word(name_lower: str) -> bool:
 # T001: wrappers that keep the values of their operand, so the check looks past them
 ELEMENTWISE_FUNCS = {"abs", "absolute", "fabs", "sqrt", "square", "pow", "power"}
 
+# T001: calls that move values along time, so a difference using one is temporal
+TEMPORAL_FUNCS = {"shift", "diff", "pct_change"}
+
 
 def _call_operand(call: ast.Call) -> Optional[ast.AST]:
     """
@@ -182,12 +185,24 @@ class TemporalAnalyzer(ast.NodeVisitor):
         if isinstance(operand, ast.Subscript):
             return _has_stop_slice(operand.slice)
         if isinstance(operand, ast.BinOp) and isinstance(operand.op, ast.Sub):
-            # A shift by a constant (x - 1) is not a comparison of two arrays
+            # A shift by a constant (x - 1) is not a comparison of two arrays, and
+            # a difference over time (x - x.shift(1), returns) is not an error metric
+            if isinstance(operand.left, ast.Constant) or isinstance(
+                operand.right, ast.Constant
+            ):
+                return False
             return not (
-                isinstance(operand.left, ast.Constant)
-                or isinstance(operand.right, ast.Constant)
+                self._is_temporal(operand.left) or self._is_temporal(operand.right)
             )
         return False
+
+    def _is_temporal(self, expr: ast.AST) -> bool:
+        """True if an expression moves values along time, as in x.shift(1)."""
+        return any(
+            isinstance(node, ast.Call)
+            and self._get_func_name(node.func) in TEMPORAL_FUNCS
+            for node in ast.walk(expr)
+        )
 
     def _unwrap_elementwise(self, expr: ast.AST) -> ast.AST:
         """Strip element-wise wrappers such as (a - b) ** 2 or np.abs(a - b)."""

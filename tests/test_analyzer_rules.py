@@ -164,6 +164,14 @@ def test_t001_error_metric_over_difference_is_safe():
     assert _rule_ids("np.sqrt(np.mean((a - e) ** 2))") == []
 
 
+def test_t001_difference_over_time_is_still_flagged():
+    """Returns and lagged differences move along time, so they are not residuals."""
+    assert _rule_ids("r = (df['close'] - df['close'].shift(1)).std()") == ["T001"]
+    assert _rule_ids("m = np.mean(df.close.shift(1) - df.close)") == ["T001"]
+    assert _rule_ids("v = np.std(x - x.diff())") == ["T001"]
+    assert _rule_ids("rms = np.mean((pred - target.shift(1)) ** 2)") == ["T001"]
+
+
 def test_t001_loss_on_method_chain_over_difference_is_safe():
     """torch-friction computes an MSE loss with .pow(2).mean() on a difference."""
     source = "loss = (predictions - target_friction).pow(2).mean()"
