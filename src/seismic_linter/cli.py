@@ -197,9 +197,10 @@ def main():
     all_files: Set[Path] = set()
     for p in paths_to_scan:
         if p.is_file():
-            if p.suffix in SUPPORTED_EXTENSIONS and not is_excluded(
-                p, excludes, p.parent
-            ):
+            # Explicit paths (e.g. from pre-commit) still honour excludes, matched
+            # below the project root when the file is inside it.
+            base = project_root if project_root in p.parents else p.parent
+            if p.suffix in SUPPORTED_EXTENSIONS and not is_excluded(p, excludes, base):
                 all_files.add(p)
         else:
             all_files.update(collect_files(p, config))

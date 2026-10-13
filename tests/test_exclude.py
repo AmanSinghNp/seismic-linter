@@ -50,3 +50,25 @@ def test_cli_scans_project_located_under_build_directory(tmp_path, monkeypatch, 
 
     data = json.loads(capsys.readouterr().out)
     assert any(v["rule_id"] == "T001" for v in data)
+
+
+def test_explicit_file_in_excluded_directory_is_skipped(tmp_path, monkeypatch, capsys):
+    """Pre-commit passes explicit paths; configured excludes must still apply."""
+    project = tmp_path / "proj"
+    (project / "tests").mkdir(parents=True)
+    (project / "pyproject.toml").write_text(
+        '[tool.seismic-linter]\nexclude = ["tests"]\n', encoding="utf-8"
+    )
+    leaky = project / "tests" / "test_leaky.py"
+    leaky.write_text("df.mean()\n", encoding="utf-8")
+
+    monkeypatch.chdir(project)
+    with patch.object(
+        sys, "argv", ["seismic-linter", "--no-fail-on-error", str(leaky)]
+    ):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    assert "No Python or Jupyter files to analyze." in capsys.readouterr().out
