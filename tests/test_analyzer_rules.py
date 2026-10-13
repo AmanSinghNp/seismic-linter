@@ -134,3 +134,35 @@ def test_analyze_file_accepts_utf8_bom(tmp_path):
     violations = analyze_file(py_file)
 
     assert [v.rule_id for v in violations] == ["T001"]
+
+
+# --- T001: explicit windows and error metrics are not global statistics ---
+def test_t001_statistic_over_bounded_window_is_safe():
+    """fast-trigger takes a peak over one pick's slice of a trace."""
+    assert _rule_ids("snr = np.max(cft[trace_index, on : off + 1])") == []
+    assert _rule_ids("train_stats = df[:split].mean()") == []
+    assert _rule_ids("train_stats = df.iloc[:split].std()") == []
+
+
+def test_t001_unbounded_or_step_only_slices_still_flagged():
+    assert _rule_ids("df[:].mean()") == ["T001"]
+    assert _rule_ids("df[::2].mean()") == ["T001"]
+
+
+def test_t001_error_metric_over_difference_is_safe():
+    """Residuals between prediction and reference are evaluation, not fitting."""
+    assert _rule_ids("rms = np.mean((pred - target) ** 2)") == []
+    assert _rule_ids("np.max(np.abs(got - expected))") == []
+    assert _rule_ids("np.sqrt(np.mean((a - e) ** 2))") == []
+
+
+def test_t001_loss_on_method_chain_over_difference_is_safe():
+    """torch-friction computes an MSE loss with .pow(2).mean() on a difference."""
+    source = "loss = (predictions - target_friction).pow(2).mean()"
+    assert _rule_ids(source) == []
+
+
+def test_t001_squared_series_and_constant_shift_still_flagged():
+    assert _rule_ids("np.mean(data ** 2)") == ["T001"]
+    assert _rule_ids("np.mean(x - 1)") == ["T001"]
+    assert _rule_ids("v_max = velocity.max()") == ["T001"]

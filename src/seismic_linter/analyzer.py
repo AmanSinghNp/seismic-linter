@@ -30,6 +30,39 @@ def _has_unsafe_word(name_lower: str) -> bool:
     )
 
 
+# T001: wrappers that keep the values of their operand, so the check looks past them
+ELEMENTWISE_FUNCS = {"abs", "absolute", "fabs", "sqrt", "square", "pow", "power"}
+
+
+def _call_operand(call: ast.Call) -> Optional[ast.AST]:
+    """
+    The value a call works on: the receiver of a method called on an
+    expression, as in (a - b).pow(2), otherwise the first argument, as in
+    np.abs(a - b). A method called on a bare name, as in x.abs(), uses the name.
+    """
+    func = call.func
+    if isinstance(func, ast.Attribute) and not isinstance(func.value, ast.Name):
+        return func.value
+    if call.args:
+        return call.args[0]
+    if isinstance(func, ast.Attribute):
+        return func.value
+    return None
+
+
+def _has_bounded_slice(index: ast.AST) -> bool:
+    """
+    True if a subscript has a slice with a start or a stop, as in x[:split]
+    or cft[trace, on:off]. A bare x[:] or a step-only x[::2] does not count.
+    """
+    parts = index.elts if isinstance(index, ast.Tuple) else [index]
+    return any(
+        isinstance(part, ast.Slice)
+        and (part.lower is not None or part.upper is not None)
+        for part in parts
+    )
+
+
 def extract_suppressions(source: str) -> Dict[int, Set[str]]:
     """
     Parse source code to find suppression comments.
@@ -119,7 +152,7 @@ class TemporalAnalyzer(ast.NodeVisitor):
         if isinstance(node.func, ast.Attribute):
             parent_is_safe = self._has_safe_parent(node)
 
-            if not parent_is_safe:
+            if not parent_is_safe and not self._is_windowed_or_residual(node):
                 rule = RULES["T001"]
                 self.violations.append(
                     Violation(
@@ -138,6 +171,46 @@ class TemporalAnalyzer(ast.NodeVisitor):
                         ),
                     )
                 )
+
+    def _is_windowed_or_residual(self, node: ast.Call) -> bool:
+        """
+        True if a statistic covers an explicit window, as in df[:split].mean(),
+        or the difference of two arrays, as in np.mean((pred - target) ** 2).
+        Neither normalizes over the whole series, so neither is reported.
+        """
+        operand = _call_operand(node)
+        if operand is None:
+            return False
+        operand = self._unwrap_elementwise(operand)
+        if isinstance(operand, ast.Subscript):
+            return _has_bounded_slice(operand.slice)
+        if isinstance(operand, ast.BinOp) and isinstance(operand.op, ast.Sub):
+            # A shift by a constant (x - 1) is not a comparison of two arrays
+            return not (
+                isinstance(operand.left, ast.Constant)
+                or isinstance(operand.right, ast.Constant)
+            )
+        return False
+
+    def _unwrap_elementwise(self, expr: ast.AST) -> ast.AST:
+        """Strip element-wise wrappers such as (a - b) ** 2 or np.abs(a - b)."""
+        while True:
+            if (
+                isinstance(expr, ast.BinOp)
+                and isinstance(expr.op, ast.Pow)
+                and isinstance(expr.right, ast.Constant)
+            ):
+                expr = expr.left
+                continue
+            if (
+                isinstance(expr, ast.Call)
+                and self._get_func_name(expr.func) in ELEMENTWISE_FUNCS
+            ):
+                operand = _call_operand(expr)
+                if operand is not None:
+                    expr = operand
+                    continue
+            return expr
 
     def _check_train_test_split(self, node: ast.Call) -> None:
         """Check if train_test_split respects temporal ordering (T003)."""
