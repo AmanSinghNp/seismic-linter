@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Runtime**: `verify_monotonicity` accepts empty DataFrames with a time column, as its docstring says, instead of raising that the time column is all NaN.
 - **Cache**: Cached results are keyed on the analyzer and rule code as well as the file content, so upgrading the linter no longer reuses findings from the previous rules. Deleting `.seismic_cache` after an upgrade is no longer needed.
 - **Coverage gate**: The 90% gate compares unrounded totals and the test suite no longer depends on `.seismic_cache` state.
+- **Packaging**: The license is declared as an SPDX expression, which removes the setuptools deprecation warnings from `python -m build`.
 
 ### Documentation
 - README runtime examples use `time_col` and run as written; sample CLI output matches the tool.
