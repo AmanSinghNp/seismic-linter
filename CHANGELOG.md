@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Exclude Patterns**: Default excludes (e.g. `build`, `venv`) match only path segments below the scanned directory, so a project stored under such a directory is no longer skipped silently.
+- **Notebooks**: IPython line magics and shell escapes no longer make the whole notebook fail with E001. Cells with cell magics are skipped.
+- **T002**: Unsafe names are matched by word, so names such as `small` or `call_features` no longer trigger.
+- **Suppressions**: Free-text after a second `#` in a suppression comment is not read as rule IDs.
+- **Pre-commit**: Added `.pre-commit-hooks.yaml` so the documented `seismic-linter` hook resolves.
+- **Coverage gate**: The 90% gate compares unrounded totals and the test suite no longer depends on `.seismic_cache` state.
+
+### Documentation
+- README runtime examples use `time_col` and run as written; sample CLI output matches the tool.
+
 ## [0.2.0] - 2026-02-01
 
 ### Added

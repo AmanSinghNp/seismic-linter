@@ -15,6 +15,8 @@ print(__version__)
 
 All file reads use UTF-8 encoding; files in other encodings may cause analysis errors (E000).
 
+Notebooks are converted to Python before analysis. IPython line magics (`%matplotlib inline`) and shell escapes (`!pip install ...`) are commented out so the rest of the cell still parses. Cells whose first line is a cell magic (`%%bash`, `%%html`, ...) are skipped because their body is not Python.
+
 ### `analyze_file`
 
 ```python
