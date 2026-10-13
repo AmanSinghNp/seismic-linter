@@ -39,6 +39,31 @@ def test_verify_monotonicity_rejects_all_nan_time_column():
         load_data()
 
 
+def test_verify_monotonicity_accepts_empty_frame_with_typed_time_column():
+    """Empty DataFrames are valid and sorted, so an empty time column is not NaN."""
+
+    @verify_monotonicity(time_col="time")
+    def load_data():
+        return pd.DataFrame(
+            {
+                "time": pd.Series([], dtype="datetime64[ns]"),
+                "mag": pd.Series([], dtype=float),
+            }
+        )
+
+    df = load_data()
+
+    assert df.empty and list(df.columns) == ["time", "mag"]
+
+
+def test_verify_monotonicity_accepts_untyped_empty_time_column():
+    @verify_monotonicity(time_col="time")
+    def load_data():
+        return pd.DataFrame({"time": []})
+
+    assert load_data().empty
+
+
 def test_verify_monotonicity_error_names_the_function():
     @verify_monotonicity(time_col="time")
     def load_catalogue():

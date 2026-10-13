@@ -21,7 +21,7 @@ def verify_monotonicity(time_col: str = "time") -> Callable:
 
     If data is not a DataFrame, it is returned unchanged.
     Empty DataFrames are considered valid and sorted.
-    The time column must not be all NaN; otherwise TemporalCausalityError is raised.
+    A non-empty DataFrame whose time column is all NaN raises TemporalCausalityError.
 
     Args:
         time_col: Name of the timestamp column to check.
@@ -41,7 +41,7 @@ def verify_monotonicity(time_col: str = "time") -> Callable:
                 )
                 return result
 
-            if result[time_col].isna().all():
+            if not result.empty and result[time_col].isna().all():
                 raise TemporalCausalityError(
                     f"Time column '{time_col}' cannot be all NaN."
                 )
