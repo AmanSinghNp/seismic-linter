@@ -1,4 +1,6 @@
+import io
 import re
+import tokenize
 import nbformat
 from dataclasses import replace
 from pathlib import Path
@@ -45,6 +47,13 @@ def map_violations(
     return mapped
 
 
+def _comment_out(line: str) -> str:
+    """Comments out one physical line and keeps its indentation."""
+    stripped = line.lstrip()
+    indent = line[: len(line) - len(stripped)]
+    return f"{indent}# {stripped}"
+
+
 def _comment_line_magic(line: str) -> str:
     """
     Comment out IPython line magics (%matplotlib inline) and shell escapes
@@ -52,10 +61,45 @@ def _comment_line_magic(line: str) -> str:
     and the line count is unchanged, so line mapping stays valid.
     """
     if _LINE_MAGIC_RE.match(line):
-        stripped = line.lstrip()
-        indent = line[: len(line) - len(stripped)]
-        return f"{indent}# {stripped}"
+        return _comment_out(line)
     return line
+
+
+def _starts_statement(lines: List[str]) -> bool:
+    """
+    True if a new statement can begin after these lines. It cannot when they end
+    inside an open bracket or after a backslash, so a line such as "%name)" in
+    msg = ("first %s"
+           %name)
+    is part of that statement rather than a magic.
+    """
+    source = "\n".join(lines) + "\n"
+    try:
+        for _ in tokenize.generate_tokens(io.StringIO(source).readline):
+            pass
+    except (tokenize.TokenError, SyntaxError):
+        return False
+    return True
+
+
+def _to_python_lines(lines: List[str]) -> List[str]:
+    """
+    Returns the cell lines with each line magic or shell escape commented out.
+    A backslash-continued magic also comments out the lines it continues, so the
+    rest of the cell still parses. The line count is unchanged.
+    """
+    python_lines: List[str] = []
+    in_magic = False  # the last commented line ends with a backslash
+    for line in lines:
+        if in_magic:
+            python_lines.append(_comment_out(line))
+            in_magic = line.rstrip().endswith("\\")
+        elif _LINE_MAGIC_RE.match(line) and _starts_statement(python_lines):
+            python_lines.append(_comment_line_magic(line))
+            in_magic = line.rstrip().endswith("\\")
+        else:
+            python_lines.append(line)
+    return python_lines
 
 
 def parse_notebook(filepath: Path) -> Tuple[str, NotebookMapper]:
@@ -94,7 +138,7 @@ def parse_notebook(filepath: Path) -> Tuple[str, NotebookMapper]:
                 continue
 
             # Split into lines to track line numbers
-            lines = [_comment_line_magic(line) for line in cell_source.split("\n")]
+            lines = _to_python_lines(cell_source.split("\n"))
             mapper.cells[i] = cell_source
 
             # Add to concatenated source; strict line mapping maps back to cells.

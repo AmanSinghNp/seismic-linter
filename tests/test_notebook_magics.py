@@ -84,3 +84,41 @@ def test_continuation_lines_with_operators_are_not_magics(tmp_path):
     assert "        != 0)" in source
     assert "       % n)" in source
     assert not [v for v in violations if v.rule_id == "E001"]
+
+
+def test_percent_name_on_continuation_line_is_python(tmp_path):
+    """'%name' inside an open bracket is the modulo operator, not a line magic."""
+    path = _write_notebook(
+        tmp_path,
+        [
+            ['name = "x"\n', 'msg = ("first %s"\n', "       %name)"],
+            ["df = 1\n", 'print(df["a"].mean())'],
+        ],
+    )
+
+    source, _ = parse_notebook(path)
+    violations = analyze_file(path)
+
+    assert "       %name)" in source
+    assert not [v for v in violations if v.rule_id == "E001"]
+    assert [(v.rule_id, v.cell_id) for v in violations] == [("T001", 2)]
+
+
+def test_backslash_continued_shell_escape_is_fully_commented(tmp_path):
+    """Every physical line of a backslash-continued '!' command is commented out."""
+    path = _write_notebook(
+        tmp_path,
+        [
+            ["!pip install \\\n", "    numpy \\\n", "    pandas\n", "x = 1"],
+            ["df = 1\n", 'y = df["close"].mean()'],
+        ],
+    )
+
+    source, _ = parse_notebook(path)
+    violations = analyze_file(path)
+
+    assert "# !pip install \\" in source
+    assert "    # numpy \\" in source
+    assert "    # pandas" in source
+    assert not [v for v in violations if v.rule_id == "E001"]
+    assert [(v.rule_id, v.cell_id) for v in violations] == [("T001", 2)]
