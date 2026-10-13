@@ -7,7 +7,7 @@
 
 **Static analysis for temporal causality in machine learning.**
 
-`seismic-linter` prevents "future leakage"—the most common pathology in time-series forecasting and earthquake prediction models. It detects code patterns where future data inadvertently leaks into training, ensuring your model's performance in production matches its offline validation.
+`seismic-linter` prevents "future leakage" (the most common pathology in time-series forecasting and earthquake prediction models). It detects code patterns where future data inadvertently leaks into training, ensuring your model's performance in production matches its offline validation.
 
 ## Why use this?
 
